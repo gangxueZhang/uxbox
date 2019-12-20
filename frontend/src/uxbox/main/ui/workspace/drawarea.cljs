@@ -109,15 +109,14 @@
 (def handle-drawing-generic
   (letfn [(initialize-drawing [state point]
             (let [shape (get-in state [:workspace-local :drawing])
-                  shape (geom/setup shape {:x1 (:x point)
-                                           :y1 (:y point)
-                                           :x2 (+ (:x point) 2)
-                                           :y2 (+ (:y point) 2)})]
+                  shape (geom/setup shape {:x (:x point)
+                                           :y (:y point)
+                                           :width 2
+                                           :height 2})]
               (assoc-in state [:workspace-local :drawing] (assoc shape ::initialized? true))))
 
           (resize-shape [shape point lock?]
-            (let [shape (-> (geom/shape->rect-shape shape)
-                            (geom/size))
+            (let [shape (geom/shape->rect-shape shape)
                   result (geom/resize-shape :bottom-right shape point lock?)
                   scale (geom/calculate-scale-ratio shape result)
                   mtx (geom/generate-resize-matrix :bottom-right shape scale)]

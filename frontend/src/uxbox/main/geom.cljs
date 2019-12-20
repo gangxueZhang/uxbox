@@ -194,11 +194,10 @@
            :proportion-lock false)))
 
 (defn setup-proportions-rect
-  [shape]
-  (let [{:keys [width height]} (size shape)]
-    (assoc shape
-           :proportion (/ width height)
-           :proportion-lock false)))
+  [{:keys [width height] :as shape}]
+  (assoc shape
+         :proportion (/ width height)
+         :proportion-lock false))
 
 ;; --- Resize (Dimentsions)
 
@@ -299,11 +298,11 @@
 
     :bottom-right
     (-> (gmt/matrix)
-        (gmt/translate (+ (:x1 shape))
-                       (+ (:y1 shape)))
+        (gmt/translate (+ (:x shape))
+                       (+ (:y shape)))
         (gmt/scale scalex scaley)
-        (gmt/translate (- (:x1 shape))
-                       (- (:y1 shape))))
+        (gmt/translate (- (:x shape))
+                       (- (:y shape))))
 
     :bottom
     (-> (gmt/matrix)
@@ -373,8 +372,8 @@
              :height (if lock? (/ width proportion) height)))
 
     :bottom-right
-    (let [width (- x (:x1 shape))
-          height (- y (:y1 shape))
+    (let [width (- x (:x shape))
+          height (- y (:y shape))
           proportion (:proportion shape 1)]
       (assoc shape
              :width width
@@ -421,12 +420,12 @@
 
 (defn- setup-rect
   "A specialized function for setup rect-like shapes."
-  [shape {:keys [x1 y1 x2 y2]}]
+  [shape {:keys [x y width height]}]
   (assoc shape
-         :x1 x1
-         :y1 y1
-         :x2 x2
-         :y2 y2))
+         :x x
+         :y y
+         :width width
+         :height height))
 
 (defn- setup-circle
   "A specialized function for setup circle shapes."
@@ -542,21 +541,23 @@
     :circle (transform-circle shape xfmt)))
 
 (defn- transform-rect
-  [{:keys [x1 y1] :as shape} mx]
-  (let [{:keys [width height]} (size shape)
-        tl (gpt/transform [x1 y1] mx)
-        tr (gpt/transform [(+ x1 width) y1] mx)
-        bl (gpt/transform [x1 (+ y1 height)] mx)
-        br (gpt/transform [(+ x1 width) (+ y1 height)] mx)
+  [{:keys [x y width height] :as shape} mx]
+  (let [tl (gpt/transform [x y] mx)
+        tr (gpt/transform [(+ x width) y] mx)
+        bl (gpt/transform [x (+ y height)] mx)
+        br (gpt/transform [(+ x width) (+ y height)] mx)
         minx (apply min (map :x [tl tr bl br]))
         maxx (apply max (map :x [tl tr bl br]))
         miny (apply min (map :y [tl tr bl br]))
         maxy (apply max (map :y [tl tr bl br]))]
     (assoc shape
-           :x1 minx
-           :y1 miny
-           :x2 (+ minx (- maxx minx))
-           :y2 (+ miny (- maxy miny)))))
+           :x minx
+           :y miny
+           :width (- maxx minx)
+           :height (- maxy miny))))
+
+           ;; :x2 (+ minx (- maxx minx))
+           ;; :y2 (+ miny (- maxy miny)))))
 
 (defn- transform-circle
   [{:keys [cx cy rx ry] :as shape} xfmt]
