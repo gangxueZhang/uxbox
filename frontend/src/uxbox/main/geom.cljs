@@ -15,7 +15,6 @@
 (declare move-rect)
 (declare move-path)
 (declare move-circle)
-(declare move-group)
 
 (defn move
   "Move the shape relativelly to its current
@@ -28,18 +27,15 @@
     :text (move-rect shape dpoint)
     :curve (move-path shape dpoint)
     :path (move-path shape dpoint)
-    :circle (move-circle shape dpoint)
-    :group (move-group shape dpoint)))
+    :circle (move-circle shape dpoint)))
 
 (defn- move-rect
   "A specialized function for relative movement
   for rect-like shapes."
   [shape {dx :x dy :y}]
   (assoc shape
-         :x1 (mth/round (+ (:x1 shape) dx))
-         :y1 (mth/round (+ (:y1 shape) dy))
-         :x2 (mth/round (+ (:x2 shape) dx))
-         :y2 (mth/round (+ (:y2 shape) dy))))
+         :x (mth/round (+ (:x shape) dx))
+         :y (mth/round (+ (:y shape) dy))))
 
 (defn- move-circle
   "A specialized function for relative movement
@@ -48,14 +44,6 @@
   (assoc shape
          :cx (mth/round (+ (:cx shape) dx))
          :cy (mth/round (+ (:cy shape) dy))))
-
-(defn- move-group
-  "A specialized function for relative movement
-  for group shapes."
-  [shape {dx :x dy :y}]
-  (assoc shape
-         :dx (mth/round (+ (:dx shape 0) dx))
-         :dy (mth/round (+ (:dy shape 0) dy))))
 
 (defn- move-path
   "A specialized function for relative movement
@@ -71,7 +59,6 @@
 
 (declare absolute-move-rect)
 (declare absolute-move-circle)
-(declare absolute-move-group)
 
 (defn absolute-move
   "Move the shape to the exactly specified position."
@@ -80,8 +67,7 @@
     :icon (absolute-move-rect shape point)
     :image (absolute-move-rect shape point)
     :rect (absolute-move-rect shape point)
-    :circle (absolute-move-circle shape point)
-    :group (absolute-move-group shape point)))
+    :circle (absolute-move-circle shape point)))
 
 (defn- absolute-move-rect
   "A specialized function for absolute moviment
@@ -98,12 +84,6 @@
   (let [dx (if x (- x(:cx shape)) 0)
         dy (if y (- y (:cy shape)) 0)]
     (move shape (gpt/point dx dy))))
-
-(defn- absolute-move-group
-  "A specialized function for absolute moviment
-  for rect-like shapes."
-  [shape {:keys [x y] :as pos}]
-  (throw (ex-info "Not implemented (TODO)" {})))
 
 ;; --- Rotation
 
@@ -429,29 +409,30 @@
 
 (defn- setup-circle
   "A specialized function for setup circle shapes."
-  [shape {:keys [x1 y1 x2 y2]}]
+  [shape {:keys [x y width height]}]
   (assoc shape
-         :cx x1
-         :cy y1
-         :rx (mth/abs (- x2 x1))
-         :ry (mth/abs (- y2 y1))))
+         :cx x
+         :cy y
+         :rx (mth/abs width)
+         :ry (mth/abs height)))
 
 (defn- setup-image
-  [{:keys [metadata] :as shape} {:keys [x1 y1 x2 y2] :as props}]
-  (let [{:keys [width height]} metadata]
-    (assoc shape
-           :x1 x1
-           :y1 y1
-           :x2 x2
-           :y2 y2
-           :proportion (/ width height)
-           :proportion-lock true)))
+  [{:keys [metadata] :as shape} {:keys [x y width height] :as props}]
+  (assoc shape
+         :x x
+         :y y
+         :width width
+         :height height
+         :proportion (/ (:width metadata)
+                        (:height metadata))
+         :proportion-lock true))
 
 ;; --- Coerce to Rect-like shape.
 
 (declare circle->rect-shape)
 (declare path->rect-shape)
 (declare group->rect-shape)
+(declare rect->rect-shape)
 
 (defn shape->rect-shape
   "Coerce shape to rect like shape."
@@ -460,7 +441,7 @@
     :circle (circle->rect-shape shape)
     :path (path->rect-shape shape)
     :curve (path->rect-shape shape)
-    shape))
+    (rect->rect-shape shape)))
 
 (defn shapes->rect-shape
   [shapes]
@@ -473,29 +454,41 @@
      :y1 miny
      :x2 maxx
      :y2 maxy
+     :x minx
+     :y miny
+     :width (- maxx minx)
+     :height (- maxy miny)
      :type :rect}))
 
-(defn shapes->rect-shape'
-  [shapes]
-  (let [shapes (mapv shape->rect-shape shapes)
-        total (count shapes)]
-    (loop [idx (int 0)
-           minx js/Number.POSITIVE_INFINITY
-           miny js/Number.POSITIVE_INFINITY
-           maxx js/Number.NEGATIVE_INFINITY
-           maxy js/Number.NEGATIVE_INFINITY]
-      (if (> total idx)
-        (let [{:keys [x1 y1 x2 y2]} (nth shapes idx)]
-          (recur (inc idx)
-                 (min minx x1)
-                 (min miny y1)
-                 (max maxx x2)
-                 (max maxy y2)))
-        {:x1 minx
-         :y1 miny
-         :x2 maxx
-         :y2 maxy
-         :type :rect}))))
+;; (defn shapes->rect-shape'
+;;   [shapes]
+;;   (let [shapes (mapv shape->rect-shape shapes)
+;;         total (count shapes)]
+;;     (loop [idx (int 0)
+;;            minx js/Number.POSITIVE_INFINITY
+;;            miny js/Number.POSITIVE_INFINITY
+;;            maxx js/Number.NEGATIVE_INFINITY
+;;            maxy js/Number.NEGATIVE_INFINITY]
+;;       (if (> total idx)
+;;         (let [{:keys [x1 y1 x2 y2]} (nth shapes idx)]
+;;           (recur (inc idx)
+;;                  (min minx x1)
+;;                  (min miny y1)
+;;                  (max maxx x2)
+;;                  (max maxy y2)))
+;;         {:x1 minx
+;;          :y1 miny
+;;          :x2 maxx
+;;          :y2 maxy
+;;          :type :rect}))))
+
+(defn- rect->rect-shape
+  [{:keys [x y width height] :as shape}]
+  (assoc shape
+         :x1 x
+         :y1 y
+         :x2 (+ x width)
+         :y2 (+ y height)))
 
 (defn- path->rect-shape
   [{:keys [segments] :as shape}]
@@ -507,7 +500,11 @@
            :x1 minx
            :y1 miny
            :x2 maxx
-           :y2 maxy)))
+           :y2 maxy
+           :x minx
+           :y miny
+           :width (- maxx minx)
+           :height (- maxy miny))))
 
 (defn- circle->rect-shape
   [{:keys [cx cy rx ry] :as shape}]
@@ -519,7 +516,11 @@
            :x1 x1
            :y1 y1
            :x2 (+ x1 width)
-           :y2 (+ y1 height))))
+           :y2 (+ y1 height)
+           :x x1
+           :y y1
+           :width width
+           :height height)))
 
 ;; --- Transform Shape
 
@@ -586,8 +587,6 @@
 
 ;; --- Outer Rect
 
-(declare selection-rect-generic)
-
 (defn rotation-matrix
   "Generate a rotation matrix from shape."
   [{:keys [x1 y1 rotation] :as shape}]
@@ -615,8 +614,7 @@
      (-> (shape->rect-shape shape)
          (assoc :type :rect :id (:id shape))
          (transform (or modifier (gmt/matrix)))
-         (rotate-shape)
-         (size)))))
+         #_(rotate-shape)))))
 
 ;; --- Helpers
 
@@ -625,7 +623,7 @@
   provided selection rect."
   [shape selrect]
   (let [{sx1 :x1 sx2 :x2 sy1 :y1 sy2 :y2} selrect
-        {rx1 :x1 rx2 :x2 ry1 :y1 ry2 :y2} shape]
+        {rx1 :x1 rx2 :x2 ry1 :y1 ry2 :y2} (shape->rect-shape shape)]
     (and (neg? (- sy1 ry1))
          (neg? (- sx1 rx1))
          (pos? (- sy2 ry2))
@@ -635,7 +633,7 @@
   "Check if a shape overlaps with provided selection rect."
   [shape selrect]
   (let [{sx1 :x1 sx2 :x2 sy1 :y1 sy2 :y2} selrect
-        {rx1 :x1 rx2 :x2 ry1 :y1 ry2 :y2} shape]
+        {rx1 :x1 rx2 :x2 ry1 :y1 ry2 :y2} (shape->rect-shape shape)]
     (and (< rx1 sx2)
          (> rx2 sx1)
          (< ry1 sy2)

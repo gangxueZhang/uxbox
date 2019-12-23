@@ -56,7 +56,6 @@
   (let [sql create-project-user-sql
         project-id (mk-uuid "project" project-index user-index)
         user-id (mk-uuid "user" (dec user-index))]
-    (println sql project-id user-id)
     (db/query-one conn [sql project-id user-id])))
 
 ;; --- Projects creation
