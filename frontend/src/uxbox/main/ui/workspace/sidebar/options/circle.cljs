@@ -124,7 +124,6 @@
 ;;     (st/emit! (udw/unlock-proportions (:id shape)))
 ;;     (st/emit! (udw/lock-proportions (:id shape)))))
 
-
 (mf/defc options
   [{:keys [shape] :as props}]
   [:div

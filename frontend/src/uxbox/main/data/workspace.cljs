@@ -576,6 +576,12 @@
 (declare select-shape)
 (declare recalculate-shape-canvas-relation)
 
+(def shape-default-attrs
+  {:stroke-color "#000000"
+   :stroke-opacity 1
+   :fill-color "#000000"
+   :fill-opacity 1})
+
 (defn add-shape
   [data]
   (let [id (uuid/random)]
@@ -584,6 +590,7 @@
       (update [_ state]
         (let [shape (-> (geom/setup-proportions data)
                         (assoc :id id))
+              shape (merge shape-default-attrs shape)
               shape (recalculate-shape-canvas-relation state shape)]
           (impl-assoc-shape state shape)))
 
@@ -762,19 +769,6 @@
          (when align? (rx/of (initial-selection-align selected)))
          (rx/of (apply-temporal-displacement-in-bulk selected displacement))
          (rx/of (materialize-temporal-modifier-in-bulk selected)))))))
-
-;; --- Update Shape Position
-
-(deftype UpdateShapePosition [id point]
-  ptk/UpdateEvent
-  (update [_ state]
-    (update-in state [:shapes id] geom/absolute-move point)))
-
-(defn update-position
-  "Update the start position coordenate of the shape."
-  [id point]
-  {:pre [(uuid? id) (gpt/point? point)]}
-  (UpdateShapePosition. id point))
 
 ;; --- Delete Selected
 
@@ -1035,58 +1029,15 @@
               (rx/map (constantly clear-drawing))
               (rx/take-until stoper)))))))
 
-;; --- Shape Proportions
-
-;; (defn toggle-shape-proportion-lock
-;;   [id]
-;;   (ptk/reify ::toggle-shape-proportion-lock
-;;     ptk/UpdateEvent
-;;     (update [_ state]
-;;       (let [shape (-> (get-in state [:workspace-data :shapes-by-id id])
-;;                       (geom/size)
-
-
-;; TODO: revisit
-
-(deftype LockShapeProportions [id]
-  ptk/UpdateEvent
-  (update [_ state]
-    (let [[width height] (-> (get-in state [:shapes id])
-                             (geom/size)
-                             (keep [:width :height]))
-          proportion (/ width height)]
-      (update-in state [:shapes id] assoc
-                 :proportion proportion
-                 :proportion-lock true))))
-
-(defn lock-proportions
-  "Mark proportions of the shape locked and save the current
-  proportion as additional precalculated property."
-  [id]
-  {:pre [(uuid? id)]}
-  (LockShapeProportions. id))
-
-;; TODO: revisit
-
-(deftype UnlockShapeProportions [id]
-  ptk/UpdateEvent
-  (update [_ state]
-    (assoc-in state [:shapes id :proportion-lock] false)))
-
-(defn unlock-proportions
-  [id]
-  {:pre [(uuid? id)]}
-  (UnlockShapeProportions. id))
-
 ;; --- Update Dimensions
 
-;; TODO: revisit
-
-(s/def ::width (s/and ::us/number ::us/positive))
-(s/def ::height (s/and ::us/number ::us/positive))
+(s/def ::width ::us/number)
+(s/def ::height ::us/number)
 
 (s/def ::update-dimensions
   (s/keys :opt-un [::width ::height]))
+
+;; TODO: emit commit-changes
 
 (defn update-dimensions
   "A helper event just for update the position
@@ -1098,35 +1049,31 @@
   (ptk/reify ::update-dimensions
     ptk/UpdateEvent
     (update [_ state]
-      (update-in state [:shapes id] geom/resize-dim dimensions))))
+      (update-in state [:workspace-data :shapes-by-id id] geom/resize-dim dimensions))))
 
-;; --- Update Interaction
+;; --- Shape Proportions
 
-;; TODO: revisit
-(deftype UpdateInteraction [shape interaction]
-  ptk/UpdateEvent
-  (update [_ state]
-    (let [id (or (:id interaction)
-                 (uuid/random))
-          data (assoc interaction :id id)]
-      (assoc-in state [:shapes shape :interactions id] data))))
+(defn toggle-shape-proportion-lock
+  [id]
+  (ptk/reify ::toggle-shape-proportion-lock
+    ptk/UpdateEvent
+    (update [_ state]
+      (let [shape (get-in state [:workspace-data :shapes-by-id id])]
+        (if (:proportion-lock shape)
+          (assoc-in state [:workspace-data :shapes-by-id id :proportion-lock] false)
+          (->> (geom/assign-proportions (assoc shape :proportion-lock true))
+               (assoc-in state [:workspace-data :shapes-by-id id])))))))
 
-(defn update-interaction
-  [shape interaction]
-  (UpdateInteraction. shape interaction))
+;; --- Update Shape Position
 
-;; --- Delete Interaction
-
-;; TODO: revisit
-(deftype DeleteInteracton [shape id]
-  ptk/UpdateEvent
-  (update [_ state]
-    (update-in state [:shapes shape :interactions] dissoc id)))
-
-(defn delete-interaction
-  [shape id]
-  {:pre [(uuid? id) (uuid? shape)]}
-  (DeleteInteracton. shape id))
+(defn update-position
+  [id point]
+  (s/assert ::us/uuid id)
+  (s/assert gpt/point? point)
+  (ptk/reify ::update-position
+    ptk/UpdateEvent
+    (update [_ state]
+      (update-in state [:workspace-data :shapes-by-id id] geom/absolute-move point))))
 
 ;; --- Path Modifications
 

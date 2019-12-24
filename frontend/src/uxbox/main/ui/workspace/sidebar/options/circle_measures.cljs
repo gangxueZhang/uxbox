@@ -111,7 +111,7 @@
 
 (defn- on-proportion-lock-change
   [event shape]
-  (if (:proportion-lock shape)
+  #_(if (:proportion-lock shape)
     (st/emit! (udw/unlock-proportions (:id shape)))
     (st/emit! (udw/lock-proportions (:id shape)))))
 

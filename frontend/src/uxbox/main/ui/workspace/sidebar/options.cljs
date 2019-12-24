@@ -15,7 +15,7 @@
    [uxbox.main.geom :as geom]
    [uxbox.main.store :as st]
    [uxbox.main.refs :as refs]
-   [uxbox.main.ui.shapes.attrs :refer [shape-default-attrs]]
+   ;; [uxbox.main.ui.shapes.attrs :refer [shape-default-attrs]]
 
    [uxbox.main.ui.workspace.sidebar.options.rect :as rect]
    [uxbox.main.ui.workspace.sidebar.options.circle :as circle]

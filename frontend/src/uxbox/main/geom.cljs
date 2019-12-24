@@ -73,15 +73,15 @@
   "A specialized function for absolute moviment
   for rect-like shapes."
   [shape {:keys [x y] :as pos}]
-  (let [dx (if x (- x (:x1 shape)) 0)
-        dy (if y (- y (:y1 shape)) 0)]
+  (let [dx (if x (- x (:x shape)) 0)
+        dy (if y (- y (:y shape)) 0)]
     (move shape (gpt/point dx dy))))
 
 (defn- absolute-move-circle
   "A specialized function for absolute moviment
   for rect-like shapes."
   [shape {:keys [x y] :as pos}]
-  (let [dx (if x (- x(:cx shape)) 0)
+  (let [dx (if x (- x (:cx shape)) 0)
         dy (if y (- y (:cy shape)) 0)]
     (move shape (gpt/point dx dy))))
 
@@ -139,6 +139,25 @@
   (merge shape {:width (* rx 2)
                 :height (* ry 2)}))
 
+;; --- Proportions
+
+(declare assign-proportions-path)
+(declare assign-proportions-circle)
+(declare assign-proportions-rect)
+
+(defn assign-proportions
+  [{:keys [type] :as shape}]
+  (case type
+    :circle (assign-proportions-circle shape)
+    :path (assign-proportions-path shape)
+    (assign-proportions-rect shape)))
+
+(defn- assign-proportions-rect
+  [{:keys [width height] :as shape}]
+  (assoc shape :proportion (/ width height)))
+
+;; TODO: implement the rest of shapes
+
 ;; --- Paths
 
 (defn update-path-point
@@ -195,20 +214,19 @@
     :circle (resize-dim-circle shape opts)))
 
 (defn- resize-dim-rect
-  [{:keys [proportion proportion-lock x1 y1] :as shape}
-   {:keys [width height]}]
-  {:pre [(not (and width height))]}
+  [{:keys [proportion proportion-lock x y] :as shape}
+   {:keys [width height] :as dimensions}]
   (if-not proportion-lock
     (if width
-      (assoc shape :x2 (+ x1 width))
-      (assoc shape :y2 (+ y1 height)))
+      (assoc shape :width width)
+      (assoc shape :height height))
     (if width
       (-> shape
-          (assoc :x2 (+ x1 width))
-          (assoc :y2 (+ y1 (/ width proportion))))
+          (assoc :width width)
+          (assoc :height (/ width proportion)))
       (-> shape
-          (assoc :y2 (+ y1 height))
-          (assoc :x2 (+ x1 (* height proportion)))))))
+          (assoc :height height)
+          (assoc :width (* height proportion))))))
 
 (defn- resize-dim-circle
   [{:keys [proportion proportion-lock] :as shape}
