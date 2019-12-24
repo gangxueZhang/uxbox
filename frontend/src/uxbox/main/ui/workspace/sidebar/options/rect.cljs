@@ -18,7 +18,7 @@
    [uxbox.util.dom :as dom]
    [uxbox.util.geom.point :as gpt]
    [uxbox.util.i18n :refer [tr]]
-   [uxbox.util.math :as math :refer [precision-or-0]]))
+   [uxbox.util.math :as math]))
 
 (mf/defc measures
   [{:keys [shape] :as props}]
