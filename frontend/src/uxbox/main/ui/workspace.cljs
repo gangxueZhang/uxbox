@@ -60,7 +60,7 @@
       (scroll/scroll-to-point dom mouse-point scroll-position))))
 
 (mf/defc workspace-content
-  [{:keys [layout page file] :as params}]
+  [{:keys [layout page file flags] :as params}]
   (let [canvas (mf/use-ref nil)
         left-sidebar? (not (empty? (keep layout [:layers :sitemap
                                                 :document-history])))
@@ -124,5 +124,6 @@
 
      (when (and layout page)
        [:& workspace-content {:layout layout
+                              :flags flags
                               :file file
                               :page page}])]))
