@@ -582,6 +582,8 @@
    :fill-color "#000000"
    :fill-opacity 1})
 
+;; TODO: add spec to all shape types
+
 (defn add-shape
   [data]
   (let [id (uuid/random)]

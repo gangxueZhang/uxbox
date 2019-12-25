@@ -20,7 +20,7 @@
    [uxbox.util.i18n :refer [tr]]
    [uxbox.util.math :as math]))
 
-(mf/defc measures
+(mf/defc measures-menu
   [{:keys [shape] :as props}]
   (let [on-size-change
         (fn [event attr]
@@ -28,13 +28,6 @@
                           (dom/get-value)
                           (d/parse-integer 0))]
             (st/emit! (udw/update-dimensions (:id shape) {attr value}))))
-
-        on-rotation-change
-        (fn [event]
-          (let [value (-> (dom/get-target event)
-                          (dom/get-value)
-                          (d/parse-integer 0))]
-            (st/emit! (udw/update-shape (:id shape) :rotation value))))
 
         on-proportion-lock-change
         (fn [event]
@@ -47,6 +40,13 @@
                           (d/parse-integer))
                 point (gpt/point {attr value})]
             (st/emit! (udw/update-position (:id shape) point))))
+
+        on-rotation-change
+        (fn [event]
+          (let [value (-> (dom/get-target event)
+                          (dom/get-value)
+                          (d/parse-integer 0))]
+            (st/emit! (udw/update-shape (:id shape) :rotation value))))
 
         on-radius-change
         (fn [event]
@@ -132,6 +132,6 @@
 (mf/defc options
   [{:keys [shape] :as props}]
   [:div
-   [:& measures {:shape shape}]
+   [:& measures-menu {:shape shape}]
    [:& fill-menu {:shape shape}]
    [:& stroke-menu {:shape shape}]])

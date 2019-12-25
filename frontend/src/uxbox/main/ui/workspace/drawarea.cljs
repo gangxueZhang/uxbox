@@ -116,10 +116,10 @@
               (assoc-in state [:workspace-local :drawing] (assoc shape ::initialized? true))))
 
           (resize-shape [shape point lock?]
-            (let [shape (geom/shape->rect-shape shape)
-                  result (geom/resize-shape :bottom-right shape point lock?)
-                  scale (geom/calculate-scale-ratio shape result)
-                  mtx (geom/generate-resize-matrix :bottom-right shape scale)]
+            (let [shape' (geom/shape->rect-shape shape)
+                  result (geom/resize-shape :bottom-right shape' point lock?)
+                  scale (geom/calculate-scale-ratio shape' result)
+                  mtx (geom/generate-resize-matrix :bottom-right shape' scale)]
               (assoc shape :modifier-mtx mtx)))
 
           (update-drawing [state point lock?]
@@ -149,13 +149,13 @@
 
 (def handle-drawing-path
   (letfn [(stoper-event? [{:keys [type shift] :as event}]
-             (or (= event :interrupt)
-                 (and (uws/mouse-event? event)
-                      (or (and (= type :double-click) shift)
-                          (= type :context-menu)))
-                 (and (uws/keyboard-event? event)
-                      (= type :down)
-                      (= 13 (:key event)))))
+            (or (= event ::end-path-drawing)
+                (and (uws/mouse-event? event)
+                     (or (and (= type :double-click) shift)
+                         (= type :context-menu)))
+                (and (uws/keyboard-event? event)
+                     (= type :down)
+                     (= 13 (:key event)))))
 
           (initialize-drawing [state point]
             (-> state
@@ -172,6 +172,7 @@
                 exists? (assoc-in [:workspace-local :drawing :segments index] point))))
 
           (remove-dangling-segmnet [state]
+            (prn "remove-dangling-segmnet" (get-in state [:workspace-local :drawing]))
             (update-in state [:workspace-local :drawing :segments] #(vec (butlast %))))]
 
     (ptk/reify ::handle-drawing-path
@@ -237,8 +238,7 @@
 
 (def handle-drawing-curve
   (letfn [(stoper-event? [{:keys [type shift] :as event}]
-             (or (= event :interrupt)
-                 (and (uws/mouse-event? event) (= type :up))))
+            (uws/mouse-event? event) (= type :up))
 
           (initialize-drawing [state]
             (assoc-in state [:workspace-local :drawing ::initialized?] true))
@@ -271,6 +271,7 @@
     ptk/WatchEvent
     (watch [_ state stream]
       (let [shape (get-in state [:workspace-local :drawing])]
+        (prn "handle-finish-drawing" shape)
         (rx/concat
          (rx/of dw/clear-drawing)
          (when (::initialized? shape)
@@ -321,7 +322,8 @@
             (dom/stop-propagation event)
             (st/emit! (dw/set-tooltip nil)
                       close-drawing-path
-                      :interrupt))
+                      ::end-path-drawing))
+
           (on-mouse-enter [event]
             (st/emit! (dw/set-tooltip "Click to close the path")))
           (on-mouse-leave [event]

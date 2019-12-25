@@ -156,6 +156,11 @@
   [{:keys [width height] :as shape}]
   (assoc shape :proportion (/ width height)))
 
+(defn- assign-proportions-circle
+  [{:as shape}]
+  (prn "assign-proportions-circle" shape)
+  (assoc shape :proportion 1))
+
 ;; TODO: implement the rest of shapes
 
 ;; --- Paths
@@ -170,20 +175,16 @@
 
 ;; --- Setup Proportions
 
-(declare setup-proportions-rect)
+(declare setup-proportions-const)
 (declare setup-proportions-image)
 
 (defn setup-proportions
   [shape]
   (case (:type shape)
-    :canvas (setup-proportions-rect shape)
-    :rect (setup-proportions-rect shape)
-    :circle (setup-proportions-rect shape)
     :icon (setup-proportions-image shape)
     :image (setup-proportions-image shape)
     :text shape
-    :curve (setup-proportions-rect shape)
-    :path (setup-proportions-rect shape)))
+    (setup-proportions-const shape)))
 
 (defn setup-proportions-image
   [{:keys [metadata] :as shape}]
@@ -192,10 +193,10 @@
            :proportion (/ width height)
            :proportion-lock false)))
 
-(defn setup-proportions-rect
-  [{:keys [width height] :as shape}]
+(defn setup-proportions-const
+  [shape]
   (assoc shape
-         :proportion (/ width height)
+         :proportion 1
          :proportion-lock false))
 
 ;; --- Resize (Dimentsions)
