@@ -16,6 +16,7 @@
    [uxbox.main.ui.workspace.sidebar.options.rect :as rect]
    [uxbox.main.ui.workspace.sidebar.options.circle :as circle]
    [uxbox.main.ui.workspace.sidebar.options.path :as path]
+   [uxbox.main.ui.workspace.sidebar.options.image :as image]
    [uxbox.main.ui.workspace.sidebar.options.page :as page]
    [uxbox.util.i18n :refer [tr]]))
 
@@ -44,6 +45,7 @@
        :circle [:& circle/options {:shape shape}]
        :path [:& path/options {:shape shape}]
        :curve [:& path/options {:shape shape}]
+       :image [:& image/options {:shape shape}]
        nil)]))
 
 (mf/defc options-toolbox
