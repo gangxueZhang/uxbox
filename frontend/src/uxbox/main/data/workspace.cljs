@@ -643,7 +643,7 @@
             duplicate (partial impl-duplicate-shape state)
             shapes    (map duplicate selected)]
         (rx/merge
-         (rx/from-coll (map (fn [s] #(impl-assoc-shape % s)) shapes))
+         (rx/from (map (fn [s] #(impl-assoc-shape % s)) shapes))
          (rx/of (commit-shapes-changes (mapv #(vector :add-shape (:id %) %) shapes))))))))
 
 ;; --- Toggle shape's selection status (selected or deselected)
@@ -710,41 +710,35 @@
 
 ;; --- Update Shape Attrs
 
-(defn update-shape-attrs
-  [id attrs]
-  (s/assert ::us/uuid id)
-  (let [atts (s/conform ::attributes attrs)]
-    (ptk/reify ::update-shape-attrs
-      ptk/UpdateEvent
-      (update [_ state]
-        (if (map? attrs)
-          (update-in state [:workspace-data :shapes-by-id id] merge attrs)
-          state)))))
-
 (defn update-shape
-  [id & attrs]
-  (let [attrs' (->> (apply hash-map attrs)
-                    (s/conform ::attributes))]
-    (ptk/reify ::update-shape
-      ptk/UpdateEvent
-      (update [_ state]
-        (cond-> state
-          (not= attrs' ::s/invalid)
-          (update-in [:workspace-data :shapes-by-id id] merge attrs'))))))
+  [id attrs]
+  (s/assert ::attributes attrs)
+  (ptk/reify ::update-shape
+    ptk/UpdateEvent
+    (update [_ state]
+      (let [shape-old (get-in state [:workspace-data :shapes-by-id id])
+            shape-new (merge shape-old attrs)
+            diff (d/diff-maps shape-old shape-new)]
+        (-> state
+            (assoc-in [:workspace-data :shapes-by-id id] shape-new)
+            (assoc ::tmp-change (into [:mod-shape id] diff)))))
 
+    ptk/WatchEvent
+    (watch [_ state stream]
+      (let [change (::tmp-change state)]
+        (prn "update-shape" change)
+        (rx/of (commit-shapes-changes [change])
+               #(dissoc state ::tmp-change))))))
 
 ;; --- Update Selected Shapes attrs
 
-;; TODO: improve performance of this event
-
-(defn update-selected-shapes-attrs
-  [attrs]
-  (s/assert ::attributes attrs)
+(defn update-selected-shapes
+  [& attrs]
   (ptk/reify ::update-selected-shapes-attrs
     ptk/WatchEvent
     (watch [_ state stream]
       (let [selected (get-in state [:workspace-local :selected])]
-        (rx/from-coll (map #(update-shape-attrs % attrs) selected))))))
+        (rx/from (map #(apply update-shape % attrs) selected))))))
 
 ;; --- Move Selected
 

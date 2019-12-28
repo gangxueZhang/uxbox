@@ -205,7 +205,7 @@
                  ;; TODO Keep the name of the original icon
                  :name (str "Icon " (gensym "i"))
                  :metadata metadata})]
-        (->> (rx/from-coll files)
+        (->> (rx/from files)
              (rx/filter allowed?)
              (rx/flat-map parse)
              (rx/map prepare)
@@ -339,14 +339,14 @@
   (watch [_ state stream]
     (let [selected (get-in state [:dashboard :icons :selected])]
       (rx/merge
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/map #(get-in state [:icons %]))
             (rx/map #(dissoc % :id))
             (rx/map #(assoc % :collection-id id))
             (rx/flat-map #(rp/mutation :create-icon %))
             (rx/map :payload)
             (rx/map icon-created))
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/map deselect-icon))))))
 
 (defn copy-selected
@@ -369,9 +369,9 @@
   (watch [_ state stream]
     (let [selected (get-in state [:dashboard :icons :selected])]
       (rx/merge
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/map persist-icon))
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/map deselect-icon))))))
 
 (defn move-selected
@@ -385,7 +385,7 @@
   ptk/WatchEvent
   (watch [_ state stream]
     (let [selected (get-in state [:dashboard :icons :selected])]
-      (->> (rx/from-coll selected)
+      (->> (rx/from selected)
            (rx/map delete-icon)))))
 
 (defn delete-selected

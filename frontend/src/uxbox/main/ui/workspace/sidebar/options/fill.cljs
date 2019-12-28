@@ -20,8 +20,7 @@
 (mf/defc fill-menu
   [{:keys [shape] :as props}]
   (letfn [(update-shape! [attr value]
-            (prn "update-shape!" attr value)
-            (st/emit! (udw/update-shape (:id shape) attr value)))
+            (st/emit! (udw/update-shape (:id shape) {attr value})))
           (on-color-change [event]
             (let [value (-> (dom/get-target event)
                             (dom/get-value))]

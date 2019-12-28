@@ -46,14 +46,14 @@
           (let [value (-> (dom/get-target event)
                           (dom/get-value)
                           (d/parse-integer 0))]
-            (st/emit! (udw/update-shape (:id shape) :rotation value))))
+            (st/emit! (udw/update-shape (:id shape) {:rotation value}))))
 
         on-radius-change
         (fn [event]
           (let [value (-> (dom/get-target event)
                           (dom/get-value)
                           (d/parse-double 0))]
-            (st/emit! (udw/update-shape (:id shape) :rx value :ry value))))
+            (st/emit! (udw/update-shape (:id shape) {:rx value :ry value}))))
 
         on-width-change #(on-size-change % :width)
         on-height-change #(on-size-change % :height)

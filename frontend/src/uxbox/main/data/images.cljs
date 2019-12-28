@@ -198,7 +198,7 @@
                           :width width
                           :height height}
                    id (assoc :collection-id id)))]
-         (->> (rx/from-coll files)
+         (->> (rx/from files)
               (rx/filter allowed-file?)
               (rx/mapcat image-size)
               (rx/map prepare)
@@ -353,10 +353,10 @@
   (watch [_ state stream]
     (let [selected (get-in state [:dashboard :images :selected])]
       (rx/merge
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/flat-map #(rp/mutation! :copy-image {:id % :collection-id id}))
             (rx/map image-created))
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/map deselect-image))))))
 
 (defn copy-selected
@@ -379,9 +379,9 @@
   (watch [_ state stream]
     (let [selected (get-in state [:dashboard :images :selected])]
       (rx/merge
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/map persist-image))
-       (->> (rx/from-coll selected)
+       (->> (rx/from selected)
             (rx/map deselect-image))))))
 
 (defn move-selected
@@ -395,7 +395,7 @@
   ptk/WatchEvent
   (watch [_ state stream]
     (let [selected (get-in state [:dashboard :images :selected])]
-      (->> (rx/from-coll selected)
+      (->> (rx/from selected)
            (rx/map delete-image)))))
 
 (defn delete-selected

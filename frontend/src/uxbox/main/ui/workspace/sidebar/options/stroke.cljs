@@ -26,14 +26,14 @@
           (let [value (-> (dom/get-target event)
                           (dom/get-value)
                           (d/read-string))]
-            (st/emit! (udw/update-shape (:id shape) :stroke-style value))))
+            (st/emit! (udw/update-shape (:id shape) {:stroke-style value}))))
 
         on-stroke-width-change
         (fn [event]
           (let [value (-> (dom/get-target event)
                           (dom/get-value)
                           (d/parse-double 1))]
-            (st/emit! (udw/update-shape (:id shape) :stroke-width value))))
+            (st/emit! (udw/update-shape (:id shape) {:stroke-width value}))))
 
         on-stroke-opacity-change
         (fn [event]
@@ -41,7 +41,7 @@
                           (dom/get-value)
                           (d/parse-double 1)
                           (/ 10000))]
-            (st/emit! (udw/update-shape (:id shape) :stroke-opacity value))))
+            (st/emit! (udw/update-shape (:id shape) {:stroke-opacity value}))))
 
         show-color-picker
         (fn [event]
@@ -50,7 +50,7 @@
                 props {:x x :y y
                        :default "#ffffff"
                        :value (:stroke-color shape)
-                       :on-change #(st/emit! (udw/update-shape (:id shape) :stroke-color %))
+                       :on-change #(st/emit! (udw/update-shape (:id shape) {:stroke-color %}))
                        :transparent? true}]
             (modal/show! colorpicker-modal props)))]
 
