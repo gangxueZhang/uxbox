@@ -51,8 +51,7 @@
     :fill-opacity 0
     :segments []}
    {:type :canvas
-    :name "Canvas"
-    :stroke-color "#000000"}
+    :name "Canvas"}
    {:type :curve
     :name "Path"
     :stroke-style :solid
@@ -172,7 +171,6 @@
                 exists? (assoc-in [:workspace-local :drawing :segments index] point))))
 
           (remove-dangling-segmnet [state]
-            (prn "remove-dangling-segmnet" (get-in state [:workspace-local :drawing]))
             (update-in state [:workspace-local :drawing :segments] #(vec (butlast %))))]
 
     (ptk/reify ::handle-drawing-path
@@ -271,7 +269,6 @@
     ptk/WatchEvent
     (watch [_ state stream]
       (let [shape (get-in state [:workspace-local :drawing])]
-        (prn "handle-finish-drawing" shape)
         (rx/concat
          (rx/of dw/clear-drawing)
          (when (::initialized? shape)
@@ -282,7 +279,9 @@
                  shape (dissoc shape ::initialized? :modifier-mtx)]
              ;; Add & select the created shape to the workspace
              (rx/of dw/deselect-all
-                    (dw/add-shape shape)))))))))
+                    (if (= :canvas (:type shape))
+                      (dw/add-canvas shape)
+                      (dw/add-shape shape))))))))))
 
 (def close-drawing-path
   (ptk/reify ::close-drawing-path

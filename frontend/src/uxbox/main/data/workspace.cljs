@@ -50,7 +50,6 @@
 (s/def ::font-size number?)
 (s/def ::font-style string?)
 (s/def ::font-weight string?)
-(s/def ::height number?)
 (s/def ::hidden boolean?)
 (s/def ::id uuid?)
 (s/def ::letter-spacing number?)
@@ -67,12 +66,13 @@
 (s/def ::stroke-style #{:none :solid :dotted :dashed :mixed})
 (s/def ::stroke-width number?)
 (s/def ::text-align #{"left" "right" "center" "justify"})
-(s/def ::type #{:rect :path :circle :image :text})
+(s/def ::type #{:rect :path :circle :image :text :canvas})
+(s/def ::x number?)
+(s/def ::y number?)
+(s/def ::cx number?)
+(s/def ::cy number?)
 (s/def ::width number?)
-(s/def ::x1 number?)
-(s/def ::x2 number?)
-(s/def ::y1 number?)
-(s/def ::y2 number?)
+(s/def ::height number?)
 
 (s/def ::attributes
   (s/keys :opt-un [::blocked
@@ -91,13 +91,14 @@
                    ::proportion
                    ::proportion-lock
                    ::rx ::ry
+                   ::cx ::cy
+                   ::x ::y
                    ::stroke-color
                    ::stroke-opacity
                    ::stroke-style
                    ::stroke-width
                    ::text-align
-                   ::x1 ::x2
-                   ::y1 ::y2]))
+                   ::width ::height]))
 
 (s/def ::minimal-shape
   (s/keys :req-un [::id ::page ::type ::name]))
@@ -582,10 +583,9 @@
    :fill-color "#000000"
    :fill-opacity 1})
 
-;; TODO: add spec to all shape types
-
 (defn add-shape
   [data]
+  (s/assert ::attributes data)
   (let [id (uuid/random)]
     (ptk/reify ::add-shape
       ptk/UpdateEvent
@@ -601,6 +601,32 @@
         (let [shape (get-in state [:workspace-data :shapes-by-id id])]
           (rx/of (commit-shapes-changes [[:add-shape id shape]])
                  (select-shape id)))))))
+
+(def canvas-default-attrs
+  {:stroke-color "#000000"
+   :stroke-opacity 1
+   :fill-color "#ffffff"
+   :fill-opacity 1})
+
+(defn add-canvas
+  [data]
+  (s/assert ::attributes data)
+  (let [id (uuid/random)]
+    (ptk/reify ::add-canvas
+      ptk/UpdateEvent
+      (update [_ state]
+        (let [shape (-> (geom/setup-proportions data)
+                        (assoc :id id))
+              shape (merge canvas-default-attrs shape)
+              shape (recalculate-shape-canvas-relation state shape)]
+          (impl-assoc-shape state shape)))
+
+      ptk/WatchEvent
+      (watch [_ state stream]
+        (let [shape (get-in state [:workspace-data :shapes-by-id id])]
+          (rx/of (commit-shapes-changes [[:add-canvas id shape]])
+                 (select-shape id)))))))
+
 
 ;; --- Duplicate Selected
 
@@ -919,9 +945,10 @@
 
 (defn- recalculate-shape-canvas-relation
   [state shape]
-  (let [xfmt (comp (map #(get-in state [:workspace-data :shapes-by-id %]))
+  (let [shape' (geom/shape->rect-shape shape)
+        xfmt (comp (map #(get-in state [:workspace-data :shapes-by-id %]))
                    (map geom/shape->rect-shape)
-                   (filter #(geom/overlaps? % shape))
+                   (filter #(geom/overlaps? % shape'))
                    (map :id))
 
         id (->> (get-in state [:workspace-data :canvas])

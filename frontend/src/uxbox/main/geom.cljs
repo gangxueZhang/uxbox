@@ -626,14 +626,12 @@
 
 (defn selection-rect
   "Return the selection rect for the shape."
-  ([shape]
-   (selection-rect @st/state shape))
-  ([state shape]
-   (let [modifier (:modifier-mtx shape)]
-     (-> (shape->rect-shape shape)
-         (assoc :type :rect :id (:id shape))
-         (transform (or modifier (gmt/matrix)))
-         #_(rotate-shape)))))
+  [shape]
+  (let [modifier (:modifier-mtx shape)]
+    (-> (shape->rect-shape shape)
+        (assoc :type :rect :id (:id shape))
+        (transform (or modifier (gmt/matrix)))
+        #_(rotate-shape))))
 
 ;; --- Helpers
 
@@ -641,7 +639,7 @@
   "Check if a shape is contained in the
   provided selection rect."
   [shape selrect]
-  (let [{sx1 :x1 sx2 :x2 sy1 :y1 sy2 :y2} selrect
+  (let [{sx1 :x1 sx2 :x2 sy1 :y1 sy2 :y2} (shape->rect-shape selrect)
         {rx1 :x1 rx2 :x2 ry1 :y1 ry2 :y2} (shape->rect-shape shape)]
     (and (neg? (- sy1 ry1))
          (neg? (- sx1 rx1))
@@ -651,7 +649,7 @@
 (defn overlaps?
   "Check if a shape overlaps with provided selection rect."
   [shape selrect]
-  (let [{sx1 :x1 sx2 :x2 sy1 :y1 sy2 :y2} selrect
+  (let [{sx1 :x1 sx2 :x2 sy1 :y1 sy2 :y2} (shape->rect-shape selrect)
         {rx1 :x1 rx2 :x2 ry1 :y1 ry2 :y2} (shape->rect-shape shape)]
     (and (< rx1 sx2)
          (> rx2 sx1)
