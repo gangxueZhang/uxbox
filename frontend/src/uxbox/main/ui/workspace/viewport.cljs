@@ -153,7 +153,7 @@
     [:*
      (for [item canvas]
        [:& shape-wrapper {:shape item :key (:id item)}])
-     (for [item (reverse shapes)]
+     (for [item shapes]
        [:& shape-wrapper {:shape item :key (:id item)}])]))
 
 (mf/defc viewport
