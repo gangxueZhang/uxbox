@@ -26,30 +26,6 @@
    [uxbox.util.router :as rt]
    [uxbox.util.time :as dt]))
 
-;; --- Helpers & Constants
-
-;; (def +ordering-options+
-;;   {:name "ds.ordering.by-name"
-;;    :created "ds.ordering.by-creation-date"})
-
-;; (defn- sort-images-by
-;;   [ordering images]
-;;   (case ordering
-;;     :name (sort-by :name images)
-;;     :created (reverse (sort-by :created-at images))
-;;     images))
-
-;; (defn- contains-term?
-;;   [phrase term]
-;;   (let [term (name term)]
-;;     (str/includes? (str/lower phrase) (str/trim (str/lower term)))))
-
-;; (defn- filter-images-by
-;;   [term images]
-;;   (if (str/blank? term)
-;;     images
-;;     (filter #(contains-term? (:name %) term) images)))
-
 ;; --- Refs
 
 (def collections-iref
@@ -62,21 +38,21 @@
 
 ;; --- Page Title
 
-;; (mf/defc grid-header
-;;   [{:keys [coll] :as props}]
-;;   (letfn [(on-change [name]
-;;             (st/emit! (di/rename-collection (:id coll) name)))
+(mf/defc grid-header
+  [{:keys [coll] :as props}]
+  (letfn [(on-change [name]
+            (st/emit! (di/rename-collection (:id coll) name)))
 
-;;           (delete []
-;;             (st/emit!
-;;              (di/delete-collection (:id coll))
-;;              (rt/nav :dashboard/images nil {:type (:type coll)})))
+          (delete []
+            (st/emit!
+             (di/delete-collection (:id coll))
+             (rt/nav :dashboard/images nil {:type (:type coll)})))
 
-;;           (on-delete []
-;;             (modal/show! confirm-dialog {:on-accept delete}))]
-;;     [:& common/grid-header {:value (:name coll)
-;;                             :on-change on-change
-;;                             :on-delete on-delete}]))
+          (on-delete []
+            (modal/show! confirm-dialog {:on-accept delete}))]
+    [:& common/grid-header {:value (:name coll)
+                            :on-change on-change
+                            :on-delete on-delete}]))
 
 ;; --- Nav
 
@@ -286,20 +262,21 @@
 ;; --- Grid
 
 (defn- make-images-iref
-  [id]
-  (-> (comp (l/key :images)
-            (l/lens (fn [images]
-                      (->> (vals images)
-                           (filter #(= id (:collection-id %)))))))
-      (l/derive st/state)))
+  [id type]
+  (letfn [(selector-fn [state]
+            (let [images (vals (:images state))]
+              (filterv #(= id (:collection-id %)) images)))]
+    (-> (l/lens selector-fn)
+        (l/derive st/state))))
 
 (mf/defc grid
   [{:keys [id type coll opts] :as props}]
   (let [editable? (or (= type :own) (nil? id))
-        images-iref (mf/use-memo #(make-images-iref id) #js [id])
+        images-iref (mf/use-memo
+                     {:fn #(make-images-iref id type)
+                      :deps (mf/deps id type)})
         images (->> (mf/deref images-iref)
-                    #_(filter-images-by (:filter opts ""))
-                    #_(sort-images-by (:order opts :name)))]
+                    (sort-by :created-at))]
     [:div.dashboard-grid-content
      [:div.dashboard-grid-row
       (when editable?
@@ -355,8 +332,10 @@
   [{:keys [id type coll] :as props}]
   (let [opts (mf/deref opts-iref)]
     [:*
-     ;; [:& menu {:opts opts :coll coll}]
      [:section.dashboard-grid.library
+      (when coll
+        [:& grid-header {:coll coll}])
+
       [:& grid {:id id
                 :type type
                 :coll coll
@@ -373,14 +352,16 @@
                 (= type :own) (filter #(= :own (:type %)))
                 (= type :builtin) (filter #(= :builtin (:type %)))
                 true (sort-by :created-at))
-        selected-coll (cond
-                        (and (= type :own) (nil? id)) nil
-                        (uuid? id) (seek #(= id (:id %)) colls)
-                        :else (first colls))
-        id (:id selected-coll)]
+
+        coll (cond
+               (and (= type :own) (nil? id)) nil
+               (uuid? id) (seek #(= id (:id %)) colls)
+               :else (first colls))
+        id (:id coll)]
+
     (mf/use-effect #(st/emit! di/fetch-collections))
-    (mf/use-effect {:fn #(st/emit! (di/fetch-images id))
-                    :deps #js [(str id)]})
+    (mf/use-effect {:fn #(st/emit! (di/fetch-images (:id coll)))
+                    :deps #js [(str (:id coll))]})
 
     [:section.dashboard-content
      [:& nav {:type type
@@ -388,4 +369,4 @@
               :colls colls}]
      [:& content {:type type
                   :id id
-                  :coll selected-coll}]]))
+                  :coll coll}]]))
