@@ -66,57 +66,57 @@
 
 ;; --- Menu (Filter & Sort)
 
-(mf/defc menu
-  [{:keys [id opts files] :as props}]
-  (let [ordering (:order opts :modified)
-        filtering (:filter opts "")
+;; (mf/defc menu
+;;   [{:keys [id opts files] :as props}]
+;;   (let [ordering (:order opts :modified)
+;;         filtering (:filter opts "")
 
-        on-term-change
-        (fn [event]
-          (let [term (-> (dom/get-target event)
-                         (dom/get-value))]
-            (st/emit! (udp/update-opts :filter term))))
+;;         on-term-change
+;;         (fn [event]
+;;           (let [term (-> (dom/get-target event)
+;;                          (dom/get-value))]
+;;             (st/emit! (udp/update-opts :filter term))))
 
-        on-order-change
-        (fn [event]
-          (let [value (dom/event->value event)
-                value (read-string value)]
-            (st/emit! (udp/update-opts :order value))))
+;;         on-order-change
+;;         (fn [event]
+;;           (let [value (dom/event->value event)
+;;                 value (read-string value)]
+;;             (st/emit! (udp/update-opts :order value))))
 
-        on-clear
-        (fn [event]
-          (st/emit! (udp/update-opts :filter "")))]
+;;         on-clear
+;;         (fn [event]
+;;           (st/emit! (udp/update-opts :filter nil)))]
 
-    [:section.dashboard-bar.library-gap
-     [:div.dashboard-info
+;;     [:section.dashboard-bar.library-gap
+;;      [:div.dashboard-info
 
-      ;; Counter
-      [:span.dashboard-images (tr "ds.num-files" (t/c (count files)))]
+;;       ;; Counter
+;;       [:span.dashboard-images (tr "ds.num-files" (t/c (count files)))]
 
-      [:div
-       ;; Sorting
-       ;; TODO: convert to separate component?
-       (when id
-         [:*
-          [:span (tr "ds.ordering")]
-          [:select.input-select {:on-change on-order-change
-                                 :value (pr-str ordering)}
-           (for [[key value] (seq +ordering-options+)]
-             (let [key (pr-str key)]
-               [:option {:key key :value key} (tr value)]))]])]
+;;       [:div
+;;        ;; Sorting
+;;        ;; TODO: convert to separate component?
+;;        (when id
+;;          [:*
+;;           [:span (tr "ds.ordering")]
+;;           [:select.input-select {:on-change on-order-change
+;;                                  :value (pr-str ordering)}
+;;            (for [[key value] (seq +ordering-options+)]
+;;              (let [key (pr-str key)]
+;;                [:option {:key key :value key} (tr value)]))]])]
 
-      ;; Search
-      ;; TODO: convert to separate component?
-      ; [:form.dashboard-search
-      ;  [:input.input-text
-      ;   {:key :images-search-box
-      ;    :type "text"
-      ;    :on-change on-term-change
-      ;    :auto-focus true
-      ;    :placeholder (tr "ds.search.placeholder")
-      ;    :value (or filtering "")}]
-      ;  [:div.clear-search {:on-click on-clear} i/close]]
-       ]]))
+;;       ;; Search
+;;       ;; TODO: convert to separate component?
+;;       ; [:form.dashboard-search
+;;       ;  [:input.input-text
+;;       ;   {:key :images-search-box
+;;       ;    :type "text"
+;;       ;    :on-change on-term-change
+;;       ;    :auto-focus true
+;;       ;    :placeholder (tr "ds.search.placeholder")
+;;       ;    :value (or filtering "")}]
+;;       ;  [:div.clear-search {:on-click on-clear} i/close]]
+;;        ]]))
 
 ;; --- Grid Item Thumbnail
 
@@ -164,9 +164,9 @@
       ;; [:div.project-th-icon.pages
       ;;  i/page
       ;;  #_[:span (:total-pages project)]]
-      #_[:div.project-th-icon.comments
-         i/chat
-         [:span "0"]]
+      ;; [:div.project-th-icon.comments
+      ;;  i/chat
+      ;;  [:span "0"]]
       [:div.project-th-icon.edit
        {:on-click on-edit}
        i/pencil]
@@ -177,7 +177,7 @@
 ;; --- Grid
 
 (mf/defc grid
-  [{:keys [opts files] :as props}]
+  [{:keys [id opts files] :as props}]
   (let [order (:order opts :modified)
         filter (:filter opts "")
         files (->> files
@@ -185,14 +185,12 @@
                    (sort-by order))
         on-click #(do
                     (dom/prevent-default %)
-                    #_(modal/show! create-project-dialog {})
-                    #_(udl/open! :create-project))
-        ]
+                    (st/emit! (udp/create-file {:project-id id})))]
     [:section.dashboard-grid
      ;; [:h2 (tr "ds.projects.file-name")]
      [:div.dashboard-grid-content
       [:div.dashboard-grid-row
-       [:div.grid-item.add-project #_{:on-click on-click}
+       [:div.grid-item.add-project {:on-click on-click}
         [:span (tr "ds.new-file")]]
        (for [item files]
          [:& grid-item {:file item :key (:id item)}])]]]))
@@ -280,10 +278,8 @@
   [{:keys [id] :as props}]
   (let [opts (mf/deref opts-iref)
         files (mf/deref files-ref)]
-    [:*
-     #_[:& menu {:id id :opts opts :files files}]
-     [:section.dashboard-grid.library
-      [:& grid {:id id :opts opts :files files}]]]))
+    [:section.dashboard-grid.library
+     [:& grid {:id id :opts opts :files files}]]))
 
 ;; --- Projects Page
 
